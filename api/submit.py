@@ -104,7 +104,26 @@ class handler(BaseHTTPRequestHandler):
             sites.append({"site_name": name, "site_url": url})
             write_csv("SITES.CSV", site_fields, sites, sites_sha, "Add submitted website to directory")
 
-            self.reply(200, {"ok": True, "message": "Website added to the crawl queue."})
+            # Trigger one crawl immediately; the queue remains saved even if this trigger is unavailable.
+            # Vercel Cron is retained as a fallback for pending items.
+            trigger_status = "queued"
+            deployment = os.environ.get("VERCEL_URL", "").strip()
+            cron_secret = os.environ.get("CRON_SECRET", "").strip()
+            if deployment and cron_secret:
+                trigger_url = "https://" + deployment + "/api/crawl"
+                trigger_req = urllib.request.Request(
+                    trigger_url,
+                    headers={"Authorization": "Bearer " + cron_secret, "User-Agent": "CommunitySearchTrigger/1.0"},
+                )
+                try:
+                    with urllib.request.urlopen(trigger_req, timeout=8) as trigger_response:
+                        trigger_status = "processed" if trigger_response.status == 200 else "queued"
+                except Exception:
+                    # Don't lose a valid submission if the crawler takes longer than the submit request.
+                    trigger_status = "queued"
+
+            self.reply(200, {"ok": True, "status": trigger_status,
+                             "message": "Website saved to the crawl queue. Crawling was triggered when available."})
         except urllib.error.HTTPError as exc:
             if exc.code in (409, 422):
                 self.reply(409, {"error": "The file changed during submission. Please try again."})
