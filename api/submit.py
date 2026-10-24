@@ -126,7 +126,7 @@ class handler(BaseHTTPRequestHandler):
                                 if normalize_url(row.get("site_url", "")) == submitted_key
                                 and row.get("status") == "pending"), None)
                 retried = False
-                deployment = os.environ.get("VERCEL_URL", "").strip()
+                deployment = "comunity-search-mu.vercel.app"
                 cron_secret = os.environ.get("CRON_SECRET", "").strip()
                 if pending and deployment and cron_secret:
                     trigger_req = urllib.request.Request(
