@@ -8,6 +8,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 
@@ -29,6 +30,21 @@ def github_headers():
         raise RuntimeError("Missing GITHUB_TOKEN")
     return {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28", "User-Agent": UA}
+
+
+def normalize_url(value):
+    """Canonicalize a submitted URL for duplicate detection."""
+    parsed = urllib.parse.urlsplit(str(value or "").strip())
+    scheme = (parsed.scheme or "https").lower()
+    host = (parsed.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    port = parsed.port
+    if port and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+        host = f"{host}:{port}"
+    path = parsed.path.rstrip("/")
+    # A site's fragment never identifies a different website.
+    return urllib.parse.urlunsplit((scheme, host, path, parsed.query, ""))
 
 
 def read_csv_file(path):
@@ -173,10 +189,18 @@ class handler(BaseHTTPRequestHandler):
             try:
                 result = crawl(item.get("site_url", ""))
                 crawled, crawled_sha = read_csv_file("CRAWLED.CSV")
-                crawled.append({"site_name": item.get("site_name", ""), "site_url": item.get("site_url", ""), **result})
+                crawled_key = normalize_url(item.get("site_url", ""))
+                crawled_row = {"site_name": item.get("site_name", ""), "site_url": item.get("site_url", ""), **result}
+                existing_index = next((i for i, row in enumerate(crawled)
+                                       if normalize_url(row.get("site_url", "")) == crawled_key), None)
+                if existing_index is None:
+                    crawled.append(crawled_row)
+                else:
+                    # Refresh the existing result instead of creating a duplicate row.
+                    crawled[existing_index] = crawled_row
                 write_csv_file("CRAWLED.CSV",
                     ["site_name", "site_url", "crawled_at", "title", "text", "links", "status"],
-                    crawled, crawled_sha, "Save crawled website data")
+                    crawled, crawled_sha, "Save crawled website data without duplicates")
                 queue[index]["status"], queue[index]["error"] = "done", ""
                 outcome = "done"
             except Exception as exc:
