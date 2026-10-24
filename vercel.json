@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/submit.py": {
+      "maxDuration": 10
+    }
+  }
+}
