@@ -3,65 +3,177 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Submit a website to the community directory">
-  <title>Submit a Website</title>
+  <meta name="description" content="Search websites indexed by the Community Search crawler.">
+  <title>Community Search</title>
   <style>
-    :root { color-scheme: light; --ink:#172033; --accent:#3157d5; --line:#d9deea; }
-    * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:#f3f5fb; color:var(--ink); font-family:Arial, sans-serif; }
-    main { width:min(100%, 520px); padding:30px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 12px 35px #17203312; }
-    h1 { margin:0 0 8px; font-size:1.7rem; }
-    p { margin:0 0 24px; color:#5e6678; line-height:1.6; }
-    label { display:block; margin:18px 0 7px; font-weight:700; }
-    input { width:100%; padding:13px 14px; border:1px solid #bfc7d8; border-radius:9px; font:inherit; }
-    input:focus { outline:3px solid #3157d533; border-color:var(--accent); }
-    button { width:100%; margin-top:22px; padding:13px; border:0; border-radius:9px; background:var(--accent); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+    :root { color-scheme:light; --ink:#172033; --muted:#687187; --accent:#3157d5; --line:#dce2ee; --surface:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:#f4f6fb; color:var(--ink); font-family:Arial,sans-serif; }
+    header { padding:22px max(22px,calc((100% - 960px)/2)); background:#fff; border-bottom:1px solid var(--line); }
+    .brand { font-size:1.2rem; font-weight:800; letter-spacing:-.03em; }
+    main { width:min(100% - 32px,850px); margin:54px auto 70px; }
+    .hero { text-align:center; margin-bottom:32px; }
+    h1 { font-size:clamp(2rem,6vw,3.1rem); letter-spacing:-.05em; margin:0 0 12px; }
+    .sub { color:var(--muted); line-height:1.6; margin:0; }
+    .search-form { display:flex; gap:10px; padding:9px; background:#fff; border:1px solid var(--line); border-radius:15px; box-shadow:0 12px 35px #1720330b; }
+    input { min-width:0; width:100%; border:0; outline:0; padding:13px 12px; background:transparent; color:var(--ink); font:inherit; font-size:1rem; }
+    input:focus-visible { outline:2px solid #3157d566; border-radius:8px; }
+    button { border:0; border-radius:10px; padding:0 24px; background:var(--accent); color:white; font:inherit; font-weight:700; cursor:pointer; }
     button:disabled { opacity:.65; cursor:wait; }
-    #status { min-height:1.5em; margin-top:16px; font-weight:700; }
-    .hint { font-size:.9rem; margin-top:14px; margin-bottom:0; }
+    #search-status { min-height:24px; margin:18px 2px; color:var(--muted); }
+    #results { display:grid; gap:12px; }
+    .result { padding:20px 22px; background:var(--surface); border:1px solid var(--line); border-radius:13px; }
+    .result h2 { font-size:1.16rem; margin:0 0 7px; overflow-wrap:anywhere; }
+    .result h2 a { color:#244bb7; text-decoration:none; }
+    .result h2 a:hover { text-decoration:underline; }
+    .url { color:#21805b; font-size:.9rem; overflow-wrap:anywhere; margin:0 0 10px; }
+    .snippet { line-height:1.6; color:#4f586b; margin:0; overflow-wrap:anywhere; }
+    .date { color:#858da0; font-size:.8rem; margin:12px 0 0; }
+    details { margin-top:54px; padding:24px; background:#fff; border:1px solid var(--line); border-radius:14px; }
+    summary { cursor:pointer; font-weight:750; }
+    details p { color:var(--muted); line-height:1.55; }
+    label { display:block; font-weight:700; margin:15px 0 7px; }
+    .submit-form input { display:block; border:1px solid #c8cfdd; border-radius:9px; padding:12px; margin-bottom:4px; }
+    .submit-form button { width:100%; padding:13px; margin-top:15px; }
+    #submit-status { min-height:1.5em; font-weight:700; }
+    footer { text-align:center; color:#8a91a2; font-size:.85rem; padding:0 20px 30px; }
+    @media(max-width:540px) { main { margin-top:38px; } .search-form { gap:4px; padding:6px; } .search-form button { padding:0 15px; } .result { padding:17px; } }
   </style>
 </head>
 <body>
+  <header><div class="brand">Community Search</div></header>
   <main>
-    <h1>Submit a Website</h1>
-    <p>Fill in both fields to suggest a website for the community directory.</p>
-    <form id="site-form">
-      <label for="site-name">Website name</label>
-      <input id="site-name" name="site_name" maxlength="120" required placeholder="e.g. My Website">
-      <label for="site-url">Website URL</label>
-      <input id="site-url" name="site_url" type="url" maxlength="2048" required placeholder="https://example.com" dir="ltr">
-      <button id="submit-button" type="submit">Submit</button>
-      <div id="status" role="status" aria-live="polite"></div>
+    <section class="hero">
+      <h1>Search the community web</h1>
+      <p class="sub">Find pages discovered and indexed by our crawler.</p>
+    </section>
+    <form class="search-form" id="search-form" role="search">
+      <input id="query" name="q" type="search" maxlength="200" placeholder="Search indexed websites…" aria-label="Search indexed websites" required>
+      <button id="search-button" type="submit">Search</button>
     </form>
-    <p class="hint">Submissions are saved to the project's SITES.CSV file on GitHub.</p>
+    <div id="search-status" role="status" aria-live="polite">Search results come from pages the crawler has successfully scanned.</div>
+    <section id="results" aria-label="Search results"></section>
+
+    <details>
+      <summary>Suggest a website for the crawler</summary>
+      <p>Submit a public website. After the crawler scans it, its page content can appear in search results.</p>
+      <form class="submit-form" id="site-form">
+        <label for="site-name">Website name</label>
+        <input id="site-name" name="site_name" maxlength="120" required placeholder="e.g. My Website">
+        <label for="site-url">Website URL</label>
+        <input id="site-url" name="site_url" type="url" maxlength="2048" required placeholder="https://example.com" dir="ltr">
+        <button id="submit-button" type="submit">Submit website</button>
+        <div id="submit-status" role="status" aria-live="polite"></div>
+      </form>
+    </details>
   </main>
+  <footer>Results are limited to websites indexed by Community Search.</footer>
   <script>
-    const form = document.querySelector("#site-form");
-    const button = document.querySelector("#submit-button");
-    const status = document.querySelector("#status");
-    form.addEventListener("submit", async (event) => {
+    const searchForm = document.querySelector("#search-form");
+    const queryInput = document.querySelector("#query");
+    const searchButton = document.querySelector("#search-button");
+    const searchStatus = document.querySelector("#search-status");
+    const resultsBox = document.querySelector("#results");
+
+    function showResults(results) {
+      resultsBox.replaceChildren();
+      for (const result of results) {
+        let link;
+        try { link = new URL(result.url); } catch { continue; }
+        if (link.protocol !== "https:" && link.protocol !== "http:") continue;
+
+        const card = document.createElement("article");
+        card.className = "result";
+        const heading = document.createElement("h2");
+        const anchor = document.createElement("a");
+        anchor.href = link.href;
+        anchor.target = "_blank";
+        anchor.rel = "noopener noreferrer";
+        anchor.textContent = result.title || link.hostname;
+        heading.append(anchor);
+
+        const address = document.createElement("p");
+        address.className = "url";
+        address.textContent = link.href;
+
+        const snippet = document.createElement("p");
+        snippet.className = "snippet";
+        snippet.textContent = result.snippet || "This page matched your search.";
+
+        card.append(heading, address, snippet);
+        if (result.crawled_at) {
+          const date = document.createElement("p");
+          date.className = "date";
+          date.textContent = "Last crawled: " + result.crawled_at;
+          card.append(date);
+        }
+        resultsBox.append(card);
+      }
+    }
+
+    async function runSearch(query) {
+      searchButton.disabled = true;
+      searchButton.textContent = "Searching…";
+      searchStatus.textContent = "Searching indexed pages…";
+      resultsBox.replaceChildren();
+      try {
+        const response = await fetch("/api/search?q=" + encodeURIComponent(query));
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "Search failed.");
+        if (!data.count) {
+          searchStatus.textContent = data.indexed_pages
+            ? "No matching pages found in " + data.indexed_pages + " indexed page(s)."
+            : "No pages have been indexed yet. Submit a website and wait for the crawler to scan it.";
+        } else {
+          searchStatus.textContent = data.count + " result(s) found.";
+          showResults(data.results);
+        }
+      } catch (error) {
+        searchStatus.textContent = error.message || "Search is temporarily unavailable.";
+      } finally {
+        searchButton.disabled = false;
+        searchButton.textContent = "Search";
+      }
+    }
+
+    searchForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      status.textContent = "";
-      button.disabled = true;
-      button.textContent = "Submitting...";
+      const query = queryInput.value.trim();
+      if (query) runSearch(query);
+    });
+
+    const initialQuery = new URLSearchParams(location.search).get("q");
+    if (initialQuery) {
+      queryInput.value = initialQuery;
+      runSearch(initialQuery);
+    }
+
+    const siteForm = document.querySelector("#site-form");
+    const submitButton = document.querySelector("#submit-button");
+    const submitStatus = document.querySelector("#submit-status");
+    siteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      submitButton.disabled = true;
+      submitButton.textContent = "Submitting…";
+      submitStatus.textContent = "";
       try {
         const response = await fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            site_name: form.elements.site_name.value.trim(),
-            site_url: form.elements.site_url.value.trim()
+            site_name: siteForm.elements.site_name.value.trim(),
+            site_url: siteForm.elements.site_url.value.trim()
           })
         });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Submission failed.");
-        status.textContent = "Website saved successfully!";
-        form.reset();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Submission failed.");
+        submitStatus.textContent = "Website submitted successfully. It will appear in search after crawling.";
+        siteForm.reset();
       } catch (error) {
-        status.textContent = error.message || "Could not save right now. Please try again later.";
+        submitStatus.textContent = error.message || "Could not submit right now. Please try again.";
       } finally {
-        button.disabled = false;
-        button.textContent = "Submit";
+        submitButton.disabled = false;
+        submitButton.textContent = "Submit website";
       }
     });
   </script>
