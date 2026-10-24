@@ -35,7 +35,7 @@ def read_csv_file(path):
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{path}?ref={BRANCH}"
     req = urllib.request.Request(url, headers=github_headers())
     try:
-        with urllib.request.urlopen(req, timeout=12) as response:
+        with urllib.request.urlopen(req, timeout=5) as response:
             item = json.loads(response.read().decode("utf-8"))
         content = base64.b64decode(item["content"]).decode("utf-8-sig")
         return list(csv.DictReader(io.StringIO(content))), item["sha"]
@@ -57,7 +57,7 @@ def write_csv_file(path, fields, rows, sha, message):
     url = f"https://api.github.com/repos/{OWNER}/{REPO}/contents/{path}"
     req = urllib.request.Request(url, data=json.dumps(payload).encode(),
         headers={**github_headers(), "Content-Type": "application/json"}, method="PUT")
-    with urllib.request.urlopen(req, timeout=18) as response:
+    with urllib.request.urlopen(req, timeout=5) as response:
         response.read()
 
 
@@ -126,7 +126,7 @@ def crawl(url):
     validate_public_url(url)
     opener = urllib.request.build_opener(SafeRedirect)
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,application/xhtml+xml"})
-    with opener.open(req, timeout=12) as response:
+    with opener.open(req, timeout=5) as response:
         final_url = response.geturl()
         validate_public_url(final_url)
         content_type = response.headers.get("Content-Type", "").lower()
