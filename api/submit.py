@@ -120,8 +120,29 @@ class handler(BaseHTTPRequestHandler):
             existing = next((row for row in (sites + queue + crawled)
                              if normalize_url(row.get("site_url", "")) == submitted_key), None)
             if existing:
-                self.reply(409, {"ok": False, "duplicate": True,
-                                 "error": "This website has already been submitted or crawled."})
+                # A duplicate submission can still be useful as a retry signal when its URL
+                # is stuck in the pending queue. Never add a second queue entry.
+                pending = next((row for row in queue
+                                if normalize_url(row.get("site_url", "")) == submitted_key
+                                and row.get("status") == "pending"), None)
+                retried = False
+                deployment = os.environ.get("VERCEL_URL", "").strip()
+                cron_secret = os.environ.get("CRON_SECRET", "").strip()
+                if pending and deployment and cron_secret:
+                    trigger_req = urllib.request.Request(
+                        "https://" + deployment + "/api/crawl",
+                        headers={"Authorization": "Bearer " + cron_secret,
+                                 "User-Agent": "CommunitySearchTrigger/1.0"},
+                    )
+                    try:
+                        with urllib.request.urlopen(trigger_req, timeout=8) as trigger_response:
+                            retried = trigger_response.status == 200
+                    except Exception:
+                        pass
+                self.reply(409, {"ok": False, "duplicate": True, "retry_triggered": retried,
+                                 "error": ("This website is already queued. A crawl retry was triggered."
+                                           if pending and retried else
+                                           "This website has already been submitted or crawled.")})
                 return
 
             queue.append({"site_name": name, "site_url": url, "status": "pending",
