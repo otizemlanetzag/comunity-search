@@ -154,7 +154,7 @@ class handler(BaseHTTPRequestHandler):
             # Trigger one crawl immediately; the queue remains saved even if this trigger is unavailable.
             # Vercel Cron is retained as a fallback for pending items.
             trigger_status = "queued"
-            deployment = os.environ.get("VERCEL_URL", "").strip()
+            deployment = "comunity-search-mu.vercel.app"
             cron_secret = os.environ.get("CRON_SECRET", "").strip()
             if deployment and cron_secret:
                 trigger_url = "https://" + deployment + "/api/crawl"
