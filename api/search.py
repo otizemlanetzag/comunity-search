@@ -5,6 +5,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from http.server import BaseHTTPRequestHandler
 
 DATA_URL = "https://raw.githubusercontent.com/otizemlanetzag/comunity-search/main/CRAWLED.CSV"
@@ -17,7 +18,7 @@ def send_json(handler, status, payload):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
-    handler.send_header("Cache-Control", "public, max-age=30, stale-while-revalidate=120")
+    handler.send_header("Cache-Control", "no-store")
     handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
@@ -25,7 +26,7 @@ def send_json(handler, status, payload):
 
 
 def load_pages():
-    request = urllib.request.Request(DATA_URL, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(DATA_URL + "?v=" + str(int(time.time())), headers={"User-Agent": USER_AGENT, "Cache-Control": "no-cache", "Pragma": "no-cache"})
     with urllib.request.urlopen(request, timeout=6) as response:
         raw = response.read(MAX_DATA_BYTES + 1)
     if len(raw) > MAX_DATA_BYTES:
