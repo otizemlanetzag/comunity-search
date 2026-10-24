@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/submit.py": {
+    "addata/api/submit.py": {
       "maxDuration": 10
     }
   }
