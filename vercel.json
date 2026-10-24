@@ -1,9 +1,9 @@
 {
   "functions": {
-    "api/submit.py": { "maxDuration": 15 },
-    "api/crawl.py": { "maxDuration": 60 }
+    "api/submit.py": { "maxDuration": 10 },
+    "api/crawl.py": { "maxDuration": 10 }
   },
   "crons": [
-    { "path": "/api/crawl", "schedule": "*/5 * * * *" }
+    { "path": "/api/crawl", "schedule": "0 0 * * *" }
   ]
 }
