@@ -6,6 +6,7 @@ import os
 import re
 import urllib.error
 import urllib.request
+import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 
@@ -25,6 +26,21 @@ def headers():
     if not token:
         raise RuntimeError("Missing GITHUB_TOKEN")
     return {**HEADERS_BASE, "Authorization": f"Bearer {token}"}
+
+
+def normalize_url(value):
+    """Canonicalize a submitted URL for duplicate detection."""
+    parsed = urllib.parse.urlsplit(str(value or "").strip())
+    scheme = (parsed.scheme or "https").lower()
+    host = (parsed.hostname or "").lower()
+    if host.startswith("www."):
+        host = host[4:]
+    port = parsed.port
+    if port and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+        host = f"{host}:{port}"
+    path = parsed.path.rstrip("/")
+    # A site's fragment never identifies a different website.
+    return urllib.parse.urlunsplit((scheme, host, path, parsed.query, ""))
 
 
 def read_csv(path, fields):
@@ -92,15 +108,25 @@ class handler(BaseHTTPRequestHandler):
                 self.reply(400, {"error": "Enter a valid URL starting with http:// or https://."})
                 return
 
-            # Store the submission in the crawl queue first, so it can be picked up by Vercel Cron.
+            # Load all records before writing, and reject a URL already known to the directory,
+            # pending queue, or crawl results. URL matching ignores www, trailing slash and fragments.
+            site_fields = ["site_name", "site_url"]
+            sites, sites_sha = read_csv("SITES.CSV", site_fields)
             queue_fields = ["site_name", "site_url", "status", "added_at", "error"]
             queue, queue_sha = read_csv("CRAWL_QUEUE.CSV", queue_fields)
+            crawled_fields = ["site_name", "site_url", "crawled_at", "title", "text", "links", "status"]
+            crawled, _ = read_csv("CRAWLED.CSV", crawled_fields)
+            submitted_key = normalize_url(url)
+            existing = next((row for row in (sites + queue + crawled)
+                             if normalize_url(row.get("site_url", "")) == submitted_key), None)
+            if existing:
+                self.reply(409, {"ok": False, "duplicate": True,
+                                 "error": "This website has already been submitted or crawled."})
+                return
+
             queue.append({"site_name": name, "site_url": url, "status": "pending",
                           "added_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "error": ""})
             write_csv("CRAWL_QUEUE.CSV", queue_fields, queue, queue_sha, "Queue submitted website for crawling")
-
-            site_fields = ["site_name", "site_url"]
-            sites, sites_sha = read_csv("SITES.CSV", site_fields)
             sites.append({"site_name": name, "site_url": url})
             write_csv("SITES.CSV", site_fields, sites, sites_sha, "Add submitted website to directory")
 
