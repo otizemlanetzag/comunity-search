@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="שליחת אתר לאינדקס הקהילה">
-  <title>הוספת אתר לקהילה</title>
+  <meta name="description" content="Submit a website to the community directory">
+  <title>Submit a Website</title>
   <style>
     :root { color-scheme: light; --ink:#172033; --accent:#3157d5; --line:#d9deea; }
     * { box-sizing: border-box; }
@@ -13,7 +13,7 @@
     h1 { margin:0 0 8px; font-size:1.7rem; }
     p { margin:0 0 24px; color:#5e6678; line-height:1.6; }
     label { display:block; margin:18px 0 7px; font-weight:700; }
-    input { width:100%; padding:13px 14px; border:1px solid #bfc7d8; border-radius:9px; font:inherit; direction:auto; }
+    input { width:100%; padding:13px 14px; border:1px solid #bfc7d8; border-radius:9px; font:inherit; }
     input:focus { outline:3px solid #3157d533; border-color:var(--accent); }
     button { width:100%; margin-top:22px; padding:13px; border:0; border-radius:9px; background:var(--accent); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
     button:disabled { opacity:.65; cursor:wait; }
@@ -23,17 +23,17 @@
 </head>
 <body>
   <main>
-    <h1>הוספת אתר לקהילה</h1>
-    <p>מלאו את שני השדות כדי להציע אתר להוספה לרשימת האתרים.</p>
+    <h1>Submit a Website</h1>
+    <p>Fill in both fields to suggest a website for the community directory.</p>
     <form id="site-form">
-      <label for="site-name">שם האתר</label>
-      <input id="site-name" name="site_name" maxlength="120" required autocomplete="url" placeholder="לדוגמה: האתר שלי">
-      <label for="site-url">כתובת האתר</label>
+      <label for="site-name">Website name</label>
+      <input id="site-name" name="site_name" maxlength="120" required placeholder="e.g. My Website">
+      <label for="site-url">Website URL</label>
       <input id="site-url" name="site_url" type="url" maxlength="2048" required placeholder="https://example.com" dir="ltr">
-      <button id="submit-button" type="submit">שליחת תשובות</button>
+      <button id="submit-button" type="submit">Submit</button>
       <div id="status" role="status" aria-live="polite"></div>
     </form>
-    <p class="hint">השליחה נשמרת בקובץ SITES.CSV שבמאגר GitHub של הפרויקט.</p>
+    <p class="hint">Submissions are saved to the project's SITES.CSV file on GitHub.</p>
   </main>
   <script>
     const form = document.querySelector("#site-form");
@@ -43,7 +43,7 @@
       event.preventDefault();
       status.textContent = "";
       button.disabled = true;
-      button.textContent = "שולח...";
+      button.textContent = "Submitting...";
       try {
         const response = await fetch("/api/submit", {
           method: "POST",
@@ -54,14 +54,14 @@
           })
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "השליחה נכשלה.");
-        status.textContent = "האתר נשמר בהצלחה!";
+        if (!response.ok) throw new Error(result.error || "Submission failed.");
+        status.textContent = "Website saved successfully!";
         form.reset();
       } catch (error) {
-        status.textContent = error.message || "לא ניתן לשמור כרגע. נסו שוב מאוחר יותר.";
+        status.textContent = error.message || "Could not save right now. Please try again later.";
       } finally {
         button.disabled = false;
-        button.textContent = "שליחת תשובות";
+        button.textContent = "Submit";
       }
     });
   </script>
